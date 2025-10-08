@@ -33,22 +33,60 @@ sleep 1
 #Subproccess Import and Checker
 
 subprocess_check() {
-echo "Importing Subprocesses..."
+
+echo ""
+echo "====[WELCOME TO BANJAM SUBPROCESS IMPORT & CHECKER]===="
 echo
-if command -v aireplay-ng && airmon-ng && airodump-ng >/dev/null 2>&1; then
-    echo "Subproccesses are Intalled, Checking Usability..."
-    echo
-    if command -v aireplay-ng && airmon-ng && airodump-ng --help >dev/null 2>&1; then
-	echo "Subproccess successuly working"
-        echo
-    else
-	echo "Subproccess Imported But Not Executed Properly"
-        echo
-    fi
-else 
-    echo "Subproccess not installed properly"
-    echo
+sleep 2
+
+checktool(){
+local tool=$1
+echo "Checking for $tool..."
+sleep 1
+
+if ! command -v "$tool" > /dev/null 2>&1; then
+   echo "$tool [NOT INSTALLED]"
+   read -p "Would you like to install $tool now? (y/n): " install_choice
+   install_choice=$(echo "$install_choice" | xargs)
+
+   if [[ "$install_choice" =~ ^[Yy](es)?$ ]]; then
+      sudo apt install -y "$tool"
+   else
+      echo "Skipping installation of $tool"
+   fi
+else
+   if "$tool" --help > /dev/null 2>&1; then
+	echo "$tool [PROPERLY INSTALLED]."
+   else
+	echo "$tool [INSTALLED, BUT NOT WORKING PROPERLY]"
+   fi
 fi
+echo ""
+}
+# adding tools here
+checktool airmon-ng
+checktool airodump-ng
+checktool aircrack-ng
+checktool hping3
+checktool neofetch
+
+echo "====[SUBPROCESS CHECK COMPLETED]===="
+read -n 1 -s -r -p $'\n Press any Key to Return To Main Menu...'
+# OLD subprocess
+#if command -v aireplay-ng && airmon-ng && airodump-ng >/dev/null 2>&1; then
+ #   echo "Subproccesses are Intalled, Checking Usability..."
+  #  echo
+   # if command -v aireplay-ng && airmon-ng && airodump-ng --help >dev/null 2>&1; then
+#	echo "Subproccess successuly working"
+ #       echo
+  #  else
+#	echo "Subproccess Imported But Not Executed Properly"
+ #       echo
+  #  fi
+#else 
+ #   echo "Subproccess not installed properly"
+#    echo
+#fi
 sleep 2
 }
 
