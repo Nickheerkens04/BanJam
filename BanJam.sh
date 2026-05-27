@@ -1,16 +1,23 @@
 #!/bin/bash
 
-echo -e "                                                                    __          "
-echo -e "  ____                              _                              /\/\         "
-echo -e " | __ |  __ _ _ ___                | | __ _ _ ____ ___      /  /   |/\|   \  \  "
-echo -e " |  _ \ / _' | '__  \  ____    _   | |/ _' | '__  '__  \   |  |    |\/|    |  |'"
-echo -e " | |_) | (_| | |  | | |____|  | |__| | (_| | |  | |  | |    \  \  /\/\/\  /  /  "
-echo -e " |____/ \__,_|_|  |_|          \_____/\__,_|_|  |_|  |_|         /_/  \_\       "
+# Define color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "$BLUE                                                              $NC     __              "
+echo -e "$BLUE  ____                              _                         $NC    /\/\             "
+echo -e "$BLUE | __ |  __ _ _ ___                | | __ _ _ ____ ___    $RED  /  / $NC |/\| $RED  \  \  "
+echo -e "$BLUE |  _ \ / _' | '__  \  ____    _   | |/ _' | '__  '__  \  $RED |  |  $NC |\/|  $RED  |  |'"
+echo -e "$BLUE | |_) | (_| | |  | | |____|  | |__| | (_| | |  | |  | |  $RED \  \ $NC /\/\/\ $RED /  /  "
+echo -e "$BLUE |____/ \__,_|_|  |_|          \_____/\__,_|_|  |_|  |_|    $NC    /_/  \_\           "
 
 sleep 1
 
 echo
-echo Loading BanJam... Please Select from the Menu Below.
+echo -e "$NC Loading BanJam... Please Select from the Menu Below."
 echo
 
 sleep 1
@@ -18,14 +25,15 @@ sleep 1
 # Selecting an interface (setup monitering mode airmon-ng)
  
     echo
-    echo "[ Wireless Interfaces Found ]"
+    echo -e "$GREEN [ Wireless Interfaces Found ]"
     echo
-    iwconfig
+    printIface=$(ip a)
+    echo -e "$NC $printIface"
     echo
-    echo "Selecte Your Interface:"
+    echo "$NC Select Your Interface:"
     read -p "Set>" $Iface
     echo
-    echo "Setting Wifi Interface to Monitering Mode..."
+    echo "$YELLOW Setting Wifi Interface to Monitering Mode..."
     sudo airmon-ng check kill $Iface
     sleep 1
     sudo airmon-ng start $Iface
@@ -45,20 +53,20 @@ echo "Checking for $tool..."
 sleep 1
 
 if ! command -v "$tool" > /dev/null 2>&1; then
-   echo "$tool [NOT INSTALLED]"
+   echo -e "$tool $RED [NOT INSTALLED]$NC"
    read -p "Would you like to install $tool now? (y/n): " install_choice
    install_choice=$(echo "$install_choice" | xargs)
 
    if [[ "$install_choice" =~ ^[Yy](es)?$ ]]; then
       sudo apt install -y "$tool"
    else
-      echo "Skipping installation of $tool"
+      echo -e "$NC Skipping installation of $tool"
    fi
 else
    if "$tool" --help > /dev/null 2>&1; then
-	echo "$tool [PROPERLY INSTALLED]."
+	echo -e "$tool $GREEN [PROPERLY INSTALLED]."
    else
-	echo "$tool [INSTALLED, BUT NOT WORKING PROPERLY]"
+	echo -e "$YELLOW Warning: $tool [INSTALLED, BUT NOT WORKING PROPERLY]$NC"
    fi
 fi
 echo ""
@@ -68,23 +76,23 @@ checktool airmon-ng
 checktool airodump-ng
 checktool aircrack-ng
 checktool hping3
-checktool neofetch
+checktool fastfetch
 
-echo "====[SUBPROCESS CHECK COMPLETED]===="
-read -n 1 -s -r -p $'\n Press any Key to Return To Main Menu...'
+echo -e "$GREEN====[SUBPROCESS CHECK COMPLETED]====$NC"
+read -n 1 -s -r -p $'Press any Key to Return To Main Menu...'
 # OLD subprocess
 #if command -v aireplay-ng && airmon-ng && airodump-ng >/dev/null 2>&1; then
- #   echo "Subproccesses are Intalled, Checking Usability..."
+ #   echo -e "$NC Subproccesses are Intalled, Checking Usability..."
   #  echo
    # if command -v aireplay-ng && airmon-ng && airodump-ng --help >dev/null 2>&1; then
-#	echo "Subproccess successuly working"
+#	echo -e "$GREEN Subproccess successuly working$NC"
  #       echo
   #  else
-#	echo "Subproccess Imported But Not Executed Properly"
+#	echo -e "$YELLOW Subproccess Imported But Not Executed Properly$NC"
  #       echo
   #  fi
 #else 
- #   echo "Subproccess not installed properly"
+ #   echo -e "$RED Subproccess not installed properly$NC"
 #    echo
 #fi
 sleep 2
@@ -98,7 +106,7 @@ wifisub_menu() {
 while true; do
     echo
     echo
-    echo "[--- Wifi Jammer Type Menu ---]"
+    echo -e "$NC[--- Wifi Jammer Type Menu ---]"
     echo "1) Deauth Jammer Attack (Broadcast)"
     echo "2) Targeted Deauth Jammer Attack"
     echo "3) DDOS Bandwidth Jammer Attack"
@@ -106,7 +114,7 @@ while true; do
     read -p "Set>" wifichoice
 
 case $wifichoice in
-        1) echo ">> Preparing Wifi Attack Config..."
+        1) echo ">> Preparing Wifi $RED Attack $NC Config..."
         sleep 1
         echo
         echo "What is Your Target BSSID: "
@@ -164,29 +172,79 @@ while true; do
         subprocess_check
 	sleep 3;;
         4) echo ">> Loading Credits..."
+	sleep 2
+	echo
+        echo -e "Concept & Development Designed, scripted, and endlessly refined by $BLUE[IdontByte :0 ]$NC"
         echo
-        echo "Concept & Development Designed, scripted, and endlessly refined by [IdontByte :0 ]"
-        echo
+	sleep 2
         echo "Made with a deep passion for  Cybersecurity, Wifi Penntesting, Ethical Hacking, Coding (Its more like a love hate relationship) and just a touch of creativity."
         echo
-echo "Toolchain Integration"
+	sleep 2
+echo -e "$GREEN Toolchain Integration $NC"
+sleep 1
 echo "- Aireplay-ng"
+sleep 1
 echo "- Airmon-ng & Airodump-ng"
+sleep 1
 echo "- Shell scripting (Bash)"
+sleep 1
 echo "- Linux CLI utilities"
-echo "- My Last Strand of Willingness :0"
+sleep 1
+echo -e "A hint of $RED AI $NC for troubleshooting..."
+sleep 1
+echo -e "$YELLOW And Last But Not Least... $NC (DRUMROLL PLEASE)..."
+sleep 3
+echo -e "$RED - My Last Strand of Sanity $NC :0"
 echo
+sleep 2
 echo "BanJam’s menu aesthetics, ASCII layout, and terminal presence are inspired by retro hacking culture and the design spirit of tools like SEToolKit and also Airgeddon"
 echo
-echo "DISCLAIMER: This tools is used for ETHICAL and EDUCATIONAL purposes only. I hope you enjoy the tool that I made :) "
+sleep 2
+echo -e "$YELLOWDISCLAIMER: This tools is used for $RED ETHICAL $YELLOW and $RED EDUCATIONAL $YELLOW purposes only. Please use this tool ethically and on your own equipend. I hope you enjoy :)$NC"
+sleep 2
+echo
+echo -e "$BLUE Feel Free to Check out some of my other projects as Well :). My Github is $NC Nickheerkens04."
+sleep 2
+
+echo -e "$GREEN I Will Catch U Guys Later... Peace $NC"
+sleep 2
+
+echo '                 ..zeeeeeee..                 '
+echo '            .zd$$$$$$$$$$$$$$$$be.            '
+echo '         .e$$$$$$$$$$$$$$$$$$$$$$$$e.         '
+echo '       .$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$c       '
+echo '    .$$$$$$$$$$*   $$$$$$   *$$$$$$$$$$.      '
+echo '   z$$$$$$$$!!     $$$$$$       $$$$$$$$$     '
+echo '  d$$$$$$$!        $$$$$$        $$$$$$$$$    '
+echo ' d$$$$$$!          $$$$$$          $$$$$$$$   '
+echo 'd$$$$$$!           $$$$$$           ^$$$$$$b  '
+echo '$$$$$$F            $$$$$$            .$$$$$$r '
+echo '$$$$$$             $$$$$$.            $$$$$$$ '
+echo '$$$$$F           .$$$$$$$$c           4$$$$$$ '
+echo '$$$$$F          e$$$$$$$$$$$.          $$$$$$ '
+echo '$$$$$F        .$$$$$$$$$$$$$$b        .$$$$$$ '
+echo '$$$$$b       e$$$$$$$$$$$$$$$$$c      4$$$$$$ '
+echo '$$$$$$     .$$$$$$P$$$$$$$$$$$$$b.    $$$$$$P '
+echo '$$$$$$b   d$$$$$$! $$$$$$ !$$$$$$$c  d$$$$$$. '
+echo '.$$$$$$b.$$$$$$P   $$$$$$  ^*$$$$$$bd$$$$$$F  '
+echo ' !$$$$$$$$$$$$!    $$$$$$    !$$$$$$$$$$$$P   '
+echo '  !$$$$$$$$$P      $$$$$$      *$$$$$$$$$!    '
+echo '   ^$$$$$$$$$e.    $$$$$$    .e$$$$$$$$$!     '
+echo '     !$$$$$$$$$$$ee$$$$$$ee$$$$$$$$$$$*       '
+echo '       !$$$$$$$$$$$$$$$$$$$$$$$$$$$$!         '
+echo '          !*$$$$$$$$$$$$$$$$$$$$$$*           '
+echo '             ^!*$$$$$$$$$$$$$$*!!             '
+echo '                 ^^^^^^^^^^^^                 '
 echo;;
-        99) echo ">> Exiting, Thank You for Using BanJam..."
-        sleep 1
-        sudo airmon-ng stop $Iface
-        sudo systemctl start NetworkManager; break;;
-        *) echo ">> Invalid selection. Try again.";;
+
+      99) echo -e "$NC Exiting, Thank You for Using BanJam..."
+      sleep 1
+      sudo airmon-ng stop $Iface
+      sudo systemctl start NetworkManager; break;;
+      *) echo ">> Invalid selection. Try again." ;;
     esac
-    read -n 1 -s -r -p $'\nPress any key to return to menu...'
+   read -n 1 -s -r -p $'\nPress any key to return to menu...'
 done
+
 
 
